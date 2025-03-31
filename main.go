@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"net/http"
+	"log"
+	"strconv"
 )
 
 type Passage struct {
@@ -38,5 +41,18 @@ func main() {
 		return
 	}
 
-	fmt.Println("1件目の文字数:", len(passages[0].Text))
+	fmt.Println("全体の長さ:", len(passages))
+    http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		id, error := strconv.Atoi(r.URL.Path[1:])
+		if error != nil {
+			fmt.Fprintf(w, "Invalid ID format")
+			return
+		}
+		if id < 0 || id >= len(passages) {
+			fmt.Fprintf(w, "ID out of range")
+			return
+		}
+		fmt.Fprintf(w, "The passage which have the id is: %s\n", passages[id].Text)
+	})
+    log.Fatal(http.ListenAndServe(":8080", nil))
 }
