@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
-	"net/http"
 	"log"
+	"net/http"
+	"os"
 	"strconv"
+	"strings"
 )
 
 type Passage struct {
@@ -42,17 +43,31 @@ func main() {
 	}
 
 	fmt.Println("全体の長さ:", len(passages))
-    http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		id, error := strconv.Atoi(r.URL.Path[1:])
-		if error != nil {
-			fmt.Fprintf(w, "Invalid ID format")
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		ids := r.URL.Path[1:] // 例: "1,3,5"
+		if ids == "" {
+			fmt.Fprintf(w, "No ID provided")
 			return
 		}
-		if id < 0 || id >= len(passages) {
-			fmt.Fprintf(w, "ID out of range")
-			return
+		idStrs := strings.Split(ids, ",")
+		var results []string
+
+		for _, idStr := range idStrs {
+			id, err := strconv.Atoi(idStr)
+			if err != nil {
+				results = append(results, fmt.Sprintf("Invalid ID: %s", idStr))
+				continue
+			}
+			if id < 0 || id >= len(passages) {
+				results = append(results, fmt.Sprintf("ID out of range: %d", id))
+				continue
+			}
+			results = append(results, fmt.Sprintf("ID %d: %s", id, passages[id].Text))
 		}
-		fmt.Fprintf(w, "The passage which have the id is: %s\n", passages[id].Text)
+
+		for _, res := range results {
+			fmt.Fprintln(w, res)
+		}
 	})
-    log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
